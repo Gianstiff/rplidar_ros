@@ -141,23 +141,19 @@ rplidar_node::~rplidar_node()
 void rplidar_node::publish_scan(
   const double scan_time, ResponseNodeArray nodes, size_t node_count)
 {
+  uint16_t range_position = 0;
   static size_t scan_count = 0;
+  double angle_const = 182.04444;
   sensor_msgs::msg::LaserScan scan_msg;
 
   /* NOTE(allenh1): time was passed in as a parameter before */
   scan_msg.header.stamp = m_clock->now();
   scan_msg.header.frame_id = frame_id_;
   scan_count++;
-
+  node_count = 400;
   bool reversed = (angle_max > angle_min);
-  if (reversed) {
-    /* NOTE(allenh1): the other case seems impossible? */
-    scan_msg.angle_min = M_PI - angle_max;
-    scan_msg.angle_max = M_PI - angle_min;
-  } else {
-    scan_msg.angle_min = M_PI - angle_min;
-    scan_msg.angle_max = M_PI - angle_max;
-  }
+  scan_msg.angle_min =  -3.1415;
+  scan_msg.angle_max =  3.1415;
   scan_msg.angle_increment =
     (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count - 1);
 
@@ -169,27 +165,34 @@ void rplidar_node::publish_scan(
   scan_msg.intensities.resize(node_count);
   scan_msg.ranges.resize(node_count);
   bool reverse_data = (!inverted_ && reversed) || (inverted_ && !reversed);
-  if (!reverse_data) {
-    for (size_t i = 0; i < node_count; i++) {
-      float read_value = (float) nodes[i].dist_mm_q2 / 4.0f / 1000;
-      if (read_value == 0.0) {
-        scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
-      } else {
-        scan_msg.ranges[i] = read_value;
+    if (!reverse_data) {
+      for (size_t i = 0; i < node_count; i++) {
+        range_position = nodes[i].angle_z_q14 / (angle_const);
+		    if (range_position < node_count) {
+          float read_value = (float) nodes[i].dist_mm_q2/4.0f/1000;
+          if (read_value == 0.0) {
+            scan_msg.ranges[range_position] = 0;
+          } else {
+            scan_msg.ranges[range_position] = read_value;
+          }
+          scan_msg.intensities[range_position] = (float) (nodes[i].quality >> 2);
+        }
       }
-      scan_msg.intensities[i] = (float) (nodes[i].quality >> 2);
-    }
-  } else {
-    for (size_t i = 0; i < node_count; i++) {
-      float read_value = (float)nodes[i].dist_mm_q2 / 4.0f / 1000;
-      if (read_value == 0.0) {
-        scan_msg.ranges[node_count - 1 - i] = std::numeric_limits<float>::infinity();
-      } else {
-        scan_msg.ranges[node_count - 1 - i] = read_value;
+    } else {
+      for (size_t i = 0; i < node_count; i++) {
+        range_position = nodes[node_count-1-i].angle_z_q14 / (angle_const);
+		    if (range_position < node_count)
+		    {
+          float read_value = (float) nodes[node_count-1-i].dist_mm_q2/4.0f/1000;
+          if (read_value == 0.0) {
+            scan_msg.ranges[node_count - 1 - range_position] = 0;
+          } else {
+            scan_msg.ranges[node_count - 1 -range_position] = read_value;
+          }
+          scan_msg.intensities[node_count - 1 - range_position] = (float) (nodes[i].quality >> 2);
+        }
       }
-      scan_msg.intensities[node_count - 1 - i] = (float) (nodes[i].quality >> 2);
     }
-  }
 
   m_publisher->publish(scan_msg);
 }
