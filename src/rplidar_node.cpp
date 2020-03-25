@@ -152,10 +152,9 @@ void rplidar_node::publish_scan(
   scan_count++;
   node_count = 400;
   bool reversed = (angle_max > angle_min);
-  scan_msg.angle_min =  -3.1415;
-  scan_msg.angle_max =  3.1415;
-  scan_msg.angle_increment =
-    (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count - 1);
+  scan_msg.angle_min =  -3.141592652;
+  scan_msg.angle_max =  3.12588468874;
+  scan_msg.angle_increment = 0.01570796326;
 
   scan_msg.scan_time = scan_time;
   scan_msg.time_increment = scan_time / (double)(node_count - 1);
