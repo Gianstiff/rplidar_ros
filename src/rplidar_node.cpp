@@ -114,7 +114,7 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
   /* done setting up RPLIDAR stuff, now set up ROS 2 stuff */
 
   /* create the publisher for "/scan" */
-  m_publisher = this->create_publisher<LaserScan>(topic_name_, 10);
+  m_publisher = this->create_publisher<LaserScan>(topic_name_, rclcpp::SensorDataQoS());
 
   /* create stop motor service */
   m_stop_motor_service = this->create_service<std_srvs::srv::Empty>(
@@ -139,53 +139,55 @@ rplidar_node::~rplidar_node()
 void rplidar_node::publish_scan(
   const double scan_time, ResponseNodeArray nodes, size_t node_count)
 {
-  static size_t scan_count = 0;
+  uint16_t range_position = 0;
   sensor_msgs::msg::LaserScan scan_msg;
 
   /* NOTE(allenh1): time was passed in as a parameter before */
   scan_msg.header.stamp = this->now();
   scan_msg.header.frame_id = frame_id_;
-  scan_count++;
-
-  bool reversed = (angle_max > angle_min);
-  if (reversed) {
-    /* NOTE(allenh1): the other case seems impossible? */
-    scan_msg.angle_min = M_PI - angle_max;
-    scan_msg.angle_max = M_PI - angle_min;
-  } else {
-    scan_msg.angle_min = M_PI - angle_min;
-    scan_msg.angle_max = M_PI - angle_max;
-  }
-  scan_msg.angle_increment =
-    (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count - 1);
+  size_t scan_points = 400; // valid only for A2 model
+  scan_msg.angle_min =  -3.141592652;
+  scan_msg.angle_max =  3.12588468874;
+  scan_msg.angle_increment = 0.01570796326;
 
   scan_msg.scan_time = scan_time;
-  scan_msg.time_increment = scan_time / (double)(node_count - 1);
+  scan_msg.time_increment = scan_time / (double)(scan_points - 1);
   scan_msg.range_min = min_distance;
   scan_msg.range_max = max_distance;
 
-  scan_msg.intensities.resize(node_count);
-  scan_msg.ranges.resize(node_count);
-  bool reverse_data = (!inverted_ && reversed) || (inverted_ && !reversed);
-  if (!reverse_data) {
-    for (size_t i = 0; i < node_count; i++) {
-      float read_value = (float) nodes[i].dist_mm_q2 / 4.0f / 1000;
-      if (read_value == 0.0) {
-        scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
-      } else {
-        scan_msg.ranges[i] = read_value;
+  scan_msg.intensities.resize(scan_points);
+  scan_msg.ranges.resize(scan_points);
+
+  if (inverted_)
+  {
+    for (size_t i = 0; i < node_count; i++)
+    {
+      range_position = ((double)scan_points / 360) * (90 * ((double)nodes[i].angle_z_q14) / 16384);
+      if (range_position < scan_points)
+      {
+      float read_value = (float)nodes[i].dist_mm_q2 / 4.0f / 1000;
+        if (read_value == 0.0) {
+          scan_msg.ranges[range_position] = 0;
+        } else {
+          scan_msg.ranges[range_position] = read_value;
+        }
+        scan_msg.intensities[range_position] = (float)(nodes[i].quality >> 2);
       }
-      scan_msg.intensities[i] = (float) (nodes[i].quality >> 2);
     }
   } else {
-    for (size_t i = 0; i < node_count; i++) {
-      float read_value = (float)nodes[i].dist_mm_q2 / 4.0f / 1000;
-      if (read_value == 0.0) {
-        scan_msg.ranges[node_count - 1 - i] = std::numeric_limits<float>::infinity();
-      } else {
-        scan_msg.ranges[node_count - 1 - i] = read_value;
+    for (size_t i = 0; i < node_count; i++)
+    {
+      range_position = ((double)scan_points / 360) * (90 * ((double)nodes[i].angle_z_q14) / 16384);
+      if (range_position < scan_points) 
+      {
+        float read_value = (float)nodes[i].dist_mm_q2 / 4.0f / 1000;
+        if (read_value == 0.0) {
+          scan_msg.ranges[scan_points - range_position - 1] = 0;
+        } else {
+          scan_msg.ranges[scan_points - range_position - 1] = read_value;
+        }
+        scan_msg.intensities[scan_points - range_position - 1] = (float)(nodes[i].quality >> 2);
       }
-      scan_msg.intensities[node_count - 1 - i] = (float) (nodes[i].quality >> 2);
     }
   }
 
@@ -220,6 +222,7 @@ bool rplidar_node::getRPLIDARDeviceInfo() const
     this->get_logger(), "Firmware Ver: %d.%02d", devinfo.firmware_version >> 8,
     devinfo.firmware_version & 0xFF);
   RCLCPP_INFO(this->get_logger(), "Hardware Rev: %d", static_cast<int>(devinfo.hardware_version));
+  RCLCPP_INFO(this->get_logger(), "Model: %d", static_cast<int>(devinfo.model));
   return true;
 }
 
