@@ -111,6 +111,8 @@ rplidar_node::rplidar_node(const rclcpp::NodeOptions & options)
     exit(1);
   }
 
+  prepare_scan_message();
+
   /* done setting up RPLIDAR stuff, now set up ROS 2 stuff */
 
   /* create the publisher for "/scan" */
@@ -136,27 +138,30 @@ rplidar_node::~rplidar_node()
   RPlidarDriver::DisposeDriver(m_drv);
 }
 
+void rplidar_node::prepare_scan_message()
+{
+  scan_msg.header.frame_id = frame_id_;
+  scan_msg.angle_increment = 2 * M_PI / scan_points;
+  scan_msg.angle_min = -3.141592652;
+  scan_msg.angle_max = 3.141592652 - scan_msg.angle_increment;
+  scan_msg.intensities.resize(scan_points);
+  scan_msg.ranges.resize(scan_points);
+  scan_msg.range_min = min_distance;
+  scan_msg.range_max = max_distance;
+}
+
 void rplidar_node::publish_scan(
   const double scan_time, ResponseNodeArray nodes, size_t node_count)
 {
   uint16_t range_position = 0;
-  sensor_msgs::msg::LaserScan scan_msg;
 
   /* NOTE(allenh1): time was passed in as a parameter before */
   scan_msg.header.stamp = this->now();
-  scan_msg.header.frame_id = frame_id_;
-  size_t scan_points = 400; // valid only for A2 model
-  scan_msg.angle_min =  -3.141592652;
-  scan_msg.angle_max =  3.12588468874;
-  scan_msg.angle_increment = 0.01570796326;
-
   scan_msg.scan_time = scan_time;
   scan_msg.time_increment = scan_time / (double)(scan_points - 1);
-  scan_msg.range_min = min_distance;
-  scan_msg.range_max = max_distance;
 
-  scan_msg.intensities.resize(scan_points);
-  scan_msg.ranges.resize(scan_points);
+  std::fill (scan_msg.intensities.begin(),scan_msg.intensities.end(),0);
+  std::fill (scan_msg.ranges.begin(),scan_msg.ranges.end(),0);
 
   if (inverted_)
   {
@@ -317,6 +322,9 @@ bool rplidar_node::set_scan_mode()
     "current scan mode: %s, max_distance: %.1f m, Point number: %.1fK , angle_compensate: %d", current_scan_mode.scan_mode,
     current_scan_mode.max_distance, (1000 / current_scan_mode.us_per_sample),
     m_angle_compensate_multiple);
+  scan_points =  1.0 / (current_scan_mode.us_per_sample/100000);
+  RCLCPP_INFO(this->get_logger(), "Sample time: %f [us]", current_scan_mode.us_per_sample);
+  RCLCPP_INFO(this->get_logger(), "Points per single scan: %d", scan_points);
   return true;
 }
 

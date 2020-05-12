@@ -95,6 +95,7 @@ private:
   bool checkRPLIDARHealth() const;
   bool set_scan_mode();
   void publish_loop();
+  void prepare_scan_message();
 
   /* parameters */
   std::string channel_type_;
@@ -108,6 +109,7 @@ private:
   bool angle_compensate_;
   int m_angle_compensate_multiple;
   std::string scan_mode_;
+  size_t scan_points;
   /* Publisher */
   LaserScanPub m_publisher;
   /* Services */
@@ -118,6 +120,7 @@ private:
   /* Timer */
   Timer m_timer;
   /* Scan Times */
+  sensor_msgs::msg::LaserScan scan_msg;
   size_t m_scan_count = 0;
   double max_distance = 8.0f;
   double angle_min = deg_2_rad(0);
