@@ -68,6 +68,13 @@ using namespace std::chrono_literals;
 namespace rplidar_ros
 {
 
+enum
+{
+  RPLIDAR_A_SERIES_MINUM_MAJOR_ID = 0,
+  RPLIDAR_S_SERIES_MINUM_MAJOR_ID = 5,
+  RPLIDAR_T_SERIES_MINUM_MAJOR_ID = 8,
+};
+
 constexpr double deg_2_rad(double x)
 {
   return x * M_PI / 180.0;

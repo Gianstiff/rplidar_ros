@@ -227,7 +227,22 @@ bool rplidar_node::getRPLIDARDeviceInfo() const
     this->get_logger(), "Firmware Ver: %d.%02d", devinfo.firmware_version >> 8,
     devinfo.firmware_version & 0xFF);
   RCLCPP_INFO(this->get_logger(), "Hardware Rev: %d", static_cast<int>(devinfo.hardware_version));
-  RCLCPP_INFO(this->get_logger(), "Model: %d", static_cast<int>(devinfo.model));
+  std::string model_name;
+  if ((devinfo.model >> 4) > RPLIDAR_T_SERIES_MINUM_MAJOR_ID)
+  {
+    model_name.append("T").append(std::to_string((devinfo.model >> 4) - RPLIDAR_T_SERIES_MINUM_MAJOR_ID));
+  }
+  else if ((devinfo.model >> 4) > RPLIDAR_S_SERIES_MINUM_MAJOR_ID)
+  {
+    model_name.append("S").append(std::to_string((devinfo.model >> 4) - RPLIDAR_S_SERIES_MINUM_MAJOR_ID));
+  }
+  else
+  {
+    model_name.append("A").append(std::to_string((devinfo.model >> 4)));
+  }
+  model_name.append("M").append(std::to_string(devinfo.model&0xf));
+  RCLCPP_INFO(this->get_logger(), "Model: %s", model_name.c_str());
+
   return true;
 }
 
