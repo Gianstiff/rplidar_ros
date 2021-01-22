@@ -348,7 +348,7 @@ void rplidar_node::publish_loop()
       const int angle_compensate_nodes_count = 360 * m_angle_compensate_multiple;
       int angle_compensate_offset = 0;
       auto angle_compensate_nodes = std::make_unique<rplidar_response_measurement_node_hq_t[]>(
-        angle_compensate_nodes_count);
+        angle_compensate_nodes_count + m_angle_compensate_multiple);
       memset(
         angle_compensate_nodes.get(), 0,
         angle_compensate_nodes_count * sizeof(rplidar_response_measurement_node_hq_t));
