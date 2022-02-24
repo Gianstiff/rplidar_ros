@@ -54,7 +54,6 @@ def generate_launch_description():
             name='rplidar_composition',
             package='rplidar_ros',
             executable='rplidar_composition',
-            output='screen',
             parameters=[{'serial_port': serial_port, 
                          'serial_baudrate': serial_baudrate, 
                          'frame_id': frame_id,
