@@ -42,16 +42,16 @@ rplidar_node::rplidar_node(rclcpp::NodeOptions options)
 : rclcpp::Node("rplidar_node", options)
 {
   /* set parameters */
-  this->get_parameter_or("channel_type", channel_type_, std::string("serial"));
-  this->get_parameter_or("tcp_ip", tcp_ip_, std::string("192.168.0.7"));
-  this->get_parameter_or("tcp_port", tcp_port_, 20108);
-  this->get_parameter_or("serial_port", serial_port_, std::string("/dev/ttyUSB0"));
-  this->get_parameter_or("serial_baudrate", serial_baudrate_, 115200);
-  this->get_parameter_or("frame_id", frame_id_, std::string("laser_frame"));
-  this->get_parameter_or("inverted", inverted_, false);
-  this->get_parameter_or("angle_compensate", angle_compensate_, false);
-  this->get_parameter_or("scan_mode", scan_mode_, std::string());
-  this->get_parameter_or("topic_name", topic_name_, std::string("scan"));
+  channel_type_ = this->declare_parameter("channel_type", "serial");
+  tcp_ip_ = this->declare_parameter("tcp_ip", "192.168.0.7");
+  tcp_port_ = this->declare_parameter("tcp_port", 20108);
+  serial_port_ = this->declare_parameter("serial_port", "/dev/ttyUSB0");
+  serial_baudrate_ = this->declare_parameter("serial_baudrate", 115200);
+  frame_id_ = this->declare_parameter("frame_id", std::string("laser_frame"));
+  inverted_ = this->declare_parameter("inverted", false);
+  angle_compensate_ = this->declare_parameter("angle_compensate", false);
+  scan_mode_ = this->declare_parameter("scan_mode", std::string());
+  topic_name_ = this->declare_parameter("topic_name", std::string("scan"));
 
   RCLCPP_INFO(this->get_logger(),
     "RPLIDAR running on ROS 2 package rplidar_ros. SDK Version: '%s'", RPLIDAR_SDK_VERSION);
